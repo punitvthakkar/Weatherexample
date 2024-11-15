@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Comfort Score App</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Comfort Score App</h1>
+    <label for="location">Enter Location:</label>
+    <input type="text" id="location" placeholder="City, Country">
+    <button onclick="getWeather()">Get Comfort Score</button>
+    <div id="result"></div>
+
+    <script>
+        function setCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                let date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/";
+        }
+
+        function getCookie(name) {
+            let nameEQ = name + "=";
+            let ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        function getWeather() {
+            let location = document.getElementById('location').value;
+            let apiKey = 8444b4a72951483ffc5b4dce4bde0cba; // Replace with your OpenWeatherMap API key
+
+            // One Call API 3.0
+            fetch(`https://api.openweathermap.org/data/3.0/onecall?q=${location}&exclude=alerts&appid=${apiKey}&units=metric`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.cod === 200) {
+                        let temperature = data.current.temp;
+                        let humidity = data.current.humidity;
+                        let windSpeed = data.current.wind_speed;
+                        let comfortScore = calculateComfortScore(temperature, humidity, windSpeed);
+
+                        document.getElementById('result').innerHTML = `Comfort Score: ${comfortScore.toFixed(2)}`;
+                        setCookie('lastLocation', location, 30); 
+                    } else {
+                        document.getElementById('result').innerHTML = 'Location not found or API error.'; // Improved error handling
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching weather data:', error);
+                    document.getElementById('result').innerHTML = 'Error fetching data.';
+                });
+        }
+
+        function calculateComfortScore(temperature, humidity, windSpeed) {
+            let tempScore = 100 - Math.abs(22 - temperature) * 3; 
+            let humidityScore = 100 - Math.abs(50 - humidity) * 1;
+            let windScore = 100 - windSpeed * 5;
+
+            let comfortScore = (tempScore + humidityScore + windScore) / 3;
+
+            return Math.max(0, Math.min(100, comfortScore));
+        }
+
+        window.onload = function() {
+            let lastLocation = getCookie('lastLocation');
+            if (lastLocation) {
+                document.getElementById('location').value = lastLocation;
+            }
+        };
+    </script>
+</body>
+</html>
